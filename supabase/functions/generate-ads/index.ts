@@ -650,6 +650,7 @@ serve(async (req) => {
       text_model = "gemini-flash",
       modes = { trending: false, reddit: false, imageStyles: false },
       seed_image_urls = [],
+      inspiration_image_urls = [],
     } = await req.json();
 
     if (!project_id || !userPrompt) {
