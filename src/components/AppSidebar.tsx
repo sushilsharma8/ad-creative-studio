@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, RotateCcw, FolderOpen, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, RotateCcw, FolderOpen, ChevronDown, Zap } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -51,21 +51,26 @@ export function AppSidebar({ selectedProjectId, onSelectProject }: AppSidebarPro
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">AD</span>
+      <SidebarHeader className="p-5 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-float">
+            <Zap className="h-5 w-5 text-primary-foreground" />
           </div>
-          {!collapsed && <span className="font-semibold text-foreground">Ad Creative AI</span>}
+          {!collapsed && (
+            <div>
+              <span className="font-bold text-foreground text-sm tracking-tight">AdCreative</span>
+              <p className="text-[10px] text-muted-foreground leading-none mt-0.5">AI-Powered Ads</p>
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarGroup>
-          <div className="flex items-center justify-between px-2">
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <div className="flex items-center justify-between px-2 mb-1">
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Projects</SidebarGroupLabel>
             {!collapsed && (
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreate}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary" onClick={handleCreate}>
                 <Plus className="h-4 w-4" />
               </Button>
             )}
@@ -85,32 +90,34 @@ export function AppSidebar({ selectedProjectId, onSelectProject }: AppSidebarPro
                         }}
                         onBlur={commitRename}
                         autoFocus
-                        className="h-7 text-sm"
+                        className="h-8 text-sm rounded-lg"
                       />
                     </div>
                   ) : (
                     <SidebarMenuButton
                       onClick={() => onSelectProject(p.id)}
                       className={cn(
-                        "group justify-between",
-                        selectedProjectId === p.id && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        "group justify-between rounded-xl h-10 transition-all",
+                        selectedProjectId === p.id
+                          ? "bg-primary/10 text-primary font-semibold shadow-sm"
+                          : "hover:bg-muted"
                       )}
                     >
-                      <span className="flex items-center gap-2 truncate">
-                        <FolderOpen className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span className="truncate">{p.name}</span>}
+                      <span className="flex items-center gap-2.5 truncate">
+                        <FolderOpen className={cn("h-4 w-4 shrink-0", selectedProjectId === p.id ? "text-primary" : "text-muted-foreground")} />
+                        {!collapsed && <span className="truncate text-sm">{p.name}</span>}
                       </span>
                       {!collapsed && (
                         <span className="hidden gap-1 group-hover:flex">
                           <button
                             onClick={(e) => { e.stopPropagation(); startRename(p.id, p.name); }}
-                            className="p-0.5 rounded hover:bg-muted"
+                            className="p-1 rounded-lg hover:bg-secondary transition-colors"
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); softDeleteProject.mutate(p.id); }}
-                            className="p-0.5 rounded hover:bg-destructive/20 text-destructive"
+                            className="p-1 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -120,16 +127,25 @@ export function AppSidebar({ selectedProjectId, onSelectProject }: AppSidebarPro
                   )}
                 </SidebarMenuItem>
               ))}
+
+              {(activeProjects.data ?? []).length === 0 && !collapsed && (
+                <div className="px-3 py-6 text-center">
+                  <p className="text-xs text-muted-foreground mb-2">No projects yet</p>
+                  <Button size="sm" onClick={handleCreate} className="rounded-full px-4 text-xs h-8">
+                    <Plus className="h-3 w-3 mr-1" /> New Project
+                  </Button>
+                </div>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
       {!collapsed && trashed.length > 0 && (
-        <SidebarFooter className="p-2">
+        <SidebarFooter className="p-3">
           <Collapsible open={trashOpen} onOpenChange={setTrashOpen}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between text-muted-foreground text-xs">
+              <Button variant="ghost" className="w-full justify-between text-muted-foreground text-xs rounded-xl h-8">
                 <span className="flex items-center gap-1.5"><Trash2 className="h-3 w-3" />Trash ({trashed.length})</span>
                 <ChevronDown className={cn("h-3 w-3 transition-transform", trashOpen && "rotate-180")} />
               </Button>
@@ -137,13 +153,13 @@ export function AppSidebar({ selectedProjectId, onSelectProject }: AppSidebarPro
             <CollapsibleContent>
               <div className="space-y-0.5 mt-1">
                 {trashed.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between px-2 py-1 text-xs text-muted-foreground rounded hover:bg-muted">
+                  <div key={p.id} className="flex items-center justify-between px-3 py-1.5 text-xs text-muted-foreground rounded-lg hover:bg-muted transition-colors">
                     <span className="truncate">{p.name}</span>
                     <span className="flex gap-1">
-                      <button onClick={() => restoreProject.mutate(p.id)} className="p-0.5 hover:text-foreground" title="Restore">
+                      <button onClick={() => restoreProject.mutate(p.id)} className="p-1 hover:text-foreground rounded transition-colors" title="Restore">
                         <RotateCcw className="h-3 w-3" />
                       </button>
-                      <button onClick={() => permanentDeleteProject.mutate(p.id)} className="p-0.5 hover:text-destructive" title="Delete permanently">
+                      <button onClick={() => permanentDeleteProject.mutate(p.id)} className="p-1 hover:text-destructive rounded transition-colors" title="Delete permanently">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </span>

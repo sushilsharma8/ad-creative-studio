@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, MessageSquare, Palette, X, Check, Loader2 } from "lucide-react";
+import { Sparkles, TrendingUp, MessageSquare, Palette, X, Check, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -95,7 +95,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
           onStage: (update) => {
             setStageStatuses((prev) => ({ ...prev, [update.stage]: update.status }));
           },
-          onAsset: (update) => {
+          onAsset: () => {
             setGeneratedCount((c) => c + 1);
             queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
           },
@@ -103,10 +103,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
             setIsGenerating(false);
             queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
             queryClient.invalidateQueries({ queryKey: ["activity_log", projectId] });
-            toast({
-              title: "Generation complete",
-              description: `${data.completed}/${data.total} ads generated successfully.`,
-            });
+            toast({ title: "Generation complete ✨", description: `${data.completed}/${data.total} ads generated.` });
           },
           onError: (message) => {
             setIsGenerating(false);
@@ -120,123 +117,135 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
     }
   }, [prompt, knowledgeBase, refVertical, outputCount, imageModel, textModel, modeTrending, modeReddit, modeImageStyles, projectId, winnerAssets, deselectedSeeds, queryClient]);
 
-  const getStageStatus = (key: string): "pending" | "running" | "done" => {
-    return stageStatuses[key] || "pending";
-  };
+  const getStageStatus = (key: string): StageStatus => stageStatuses[key] || "pending";
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Main Settings */}
         <div className="space-y-5">
-          <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Creative Brief</Label>
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the ad you want to generate..."
-              className="min-h-[120px] bg-card border-border"
-            />
-          </div>
+          <Card className="border-border rounded-2xl shadow-card overflow-hidden">
+            <CardContent className="p-5 space-y-5">
+              <div>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">Creative Brief</Label>
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe the ad you want to generate..."
+                  className="min-h-[100px] bg-muted/50 border-0 rounded-xl resize-none text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30"
+                />
+              </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Knowledge Base</Label>
-              <Textarea
-                value={knowledgeBase}
-                onChange={(e) => setKnowledgeBase(e.target.value)}
-                placeholder="Vertical-specific guidance, brand rules..."
-                className="min-h-[80px] bg-card border-border"
-              />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Reference Vertical</Label>
-              <Textarea
-                value={refVertical}
-                onChange={(e) => setRefVertical(e.target.value)}
-                placeholder="Competitor references, inspiration text..."
-                className="min-h-[80px] bg-card border-border"
-              />
-            </div>
-          </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">Knowledge Base</Label>
+                  <Textarea
+                    value={knowledgeBase}
+                    onChange={(e) => setKnowledgeBase(e.target.value)}
+                    placeholder="Vertical-specific guidance..."
+                    className="min-h-[72px] bg-muted/50 border-0 rounded-xl resize-none text-sm placeholder:text-muted-foreground/60"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">Reference Vertical</Label>
+                  <Textarea
+                    value={refVertical}
+                    onChange={(e) => setRefVertical(e.target.value)}
+                    placeholder="Competitor references..."
+                    className="min-h-[72px] bg-muted/50 border-0 rounded-xl resize-none text-sm placeholder:text-muted-foreground/60"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Image Model</Label>
-              <Select value={imageModel} onValueChange={setImageModel}>
-                <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {IMAGE_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Text Model</Label>
-              <Select value={textModel} onValueChange={setTextModel}>
-                <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TEXT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
-                Outputs: {outputCount[0]}
-              </Label>
-              <Slider value={outputCount} onValueChange={setOutputCount} min={1} max={4} step={1} className="mt-3" />
-            </div>
-          </div>
+          <Card className="border-border rounded-2xl shadow-card overflow-hidden">
+            <CardContent className="p-5 space-y-5">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">Image Model</Label>
+                  <Select value={imageModel} onValueChange={setImageModel}>
+                    <SelectTrigger className="bg-muted/50 border-0 rounded-xl h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {IMAGE_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">Text Model</Label>
+                  <Select value={textModel} onValueChange={setTextModel}>
+                    <SelectTrigger className="bg-muted/50 border-0 rounded-xl h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {TEXT_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">
+                    Outputs: <span className="text-primary font-bold">{outputCount[0]}</span>
+                  </Label>
+                  <Slider value={outputCount} onValueChange={setOutputCount} min={1} max={4} step={1} className="mt-4" />
+                </div>
+              </div>
 
-          {/* Research Modes */}
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <Switch checked={modeTrending} onCheckedChange={setModeTrending} />
-              <TrendingUp className="h-4 w-4 text-muted-foreground" /> Trending Articles
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Switch checked={modeReddit} onCheckedChange={setModeReddit} />
-              <MessageSquare className="h-4 w-4 text-muted-foreground" /> Reddit Pain Points
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Switch checked={modeImageStyles} onCheckedChange={setModeImageStyles} />
-              <Palette className="h-4 w-4 text-muted-foreground" /> Image Style Diversity
-            </label>
-          </div>
+              {/* Research Modes */}
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { checked: modeTrending, onChange: setModeTrending, icon: TrendingUp, label: "Trending" },
+                  { checked: modeReddit, onChange: setModeReddit, icon: MessageSquare, label: "Reddit" },
+                  { checked: modeImageStyles, onChange: setModeImageStyles, icon: Palette, label: "Style Diversity" },
+                ].map((mode) => (
+                  <label
+                    key={mode.label}
+                    className={cn(
+                      "flex items-center gap-2 text-xs px-3.5 py-2 rounded-full border cursor-pointer transition-all select-none",
+                      mode.checked
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Switch checked={mode.checked} onCheckedChange={mode.onChange} className="scale-75" />
+                    <mode.icon className="h-3.5 w-3.5" />
+                    {mode.label}
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim()}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto rounded-full px-8 h-12 text-sm font-bold shadow-float hover:shadow-card-hover transition-all"
             size="lg"
           >
             {isGenerating ? (
               <><Loader2 className="h-4 w-4 animate-spin" />Generating...{generatedCount > 0 && ` (${generatedCount}/${outputCount[0]})`}</>
             ) : (
-              <><Sparkles className="h-4 w-4" />Generate Ads</>
+              <><Wand2 className="h-4 w-4" />Generate Ads</>
             )}
           </Button>
         </div>
 
-        {/* Right Panel: Seeds & Progress */}
+        {/* Right Panel */}
         <div className="space-y-4">
           {/* Seed Images */}
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Seed Images</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                All winners auto-selected as seeds — click to deselect.
+          <Card className="border-border rounded-2xl shadow-card overflow-hidden">
+            <CardHeader className="pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-bold">Seed Images</CardTitle>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Winners auto-selected — tap to deselect.
               </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-5 pb-5">
               {winnerAssets.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No winners yet. Rate assets as ⭐ Winner to use as seeds.</p>
+                <div className="rounded-xl bg-muted/30 p-4 text-center">
+                  <p className="text-xs text-muted-foreground">No winners yet. Rate assets ⭐ to use as seeds.</p>
+                </div>
               ) : (
                 <>
                   {deselectedSeeds.size > 0 && (
-                    <button
-                      onClick={() => setDeselectedSeeds(new Set())}
-                      className="text-xs text-primary hover:underline mb-2"
-                    >
+                    <button onClick={() => setDeselectedSeeds(new Set())} className="text-xs text-primary hover:underline mb-2 font-semibold">
                       Re-select all
                     </button>
                   )}
@@ -246,13 +255,13 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
                         key={a.id}
                         onClick={() => toggleSeed(a.id)}
                         className={cn(
-                          "relative aspect-square rounded-md overflow-hidden border-2 transition-all",
-                          deselectedSeeds.has(a.id) ? "opacity-40 border-muted grayscale" : "border-primary"
+                          "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                          deselectedSeeds.has(a.id) ? "opacity-40 border-muted grayscale" : "border-primary shadow-sm"
                         )}
                       >
                         <img src={a.image_url || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
                         {deselectedSeeds.has(a.id) && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60">
                             <X className="h-5 w-5 text-muted-foreground" />
                           </div>
                         )}
@@ -266,37 +275,39 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
 
           {/* Pipeline Progress */}
           {isGenerating && (
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Pipeline Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {PIPELINE_STAGES.map((stage, i) => {
-                  const Icon = stage.icon;
-                  const status = getStageStatus(stage.key);
-                  return (
-                    <motion.div
-                      key={stage.key}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className={cn(
-                        "flex items-center gap-2 text-sm rounded-md px-2 py-1.5 transition-colors",
-                        status === "done" && "text-success",
-                        status === "running" && "text-primary bg-primary/10",
-                        status === "pending" && "text-muted-foreground"
-                      )}
-                    >
-                      {status === "done" ? <Check className="h-4 w-4" /> : status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-                      {stage.label}
-                      {stage.key === "generating" && status === "running" && generatedCount > 0 && (
-                        <span className="text-xs text-muted-foreground ml-auto">{generatedCount}/{outputCount[0]}</span>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <Card className="border-border rounded-2xl shadow-card overflow-hidden">
+                <CardHeader className="pb-2 px-5 pt-5">
+                  <CardTitle className="text-sm font-bold">Pipeline</CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 space-y-1.5">
+                  {PIPELINE_STAGES.map((stage, i) => {
+                    const Icon = stage.icon;
+                    const status = getStageStatus(stage.key);
+                    return (
+                      <motion.div
+                        key={stage.key}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.08 }}
+                        className={cn(
+                          "flex items-center gap-2.5 text-sm rounded-xl px-3 py-2 transition-all",
+                          status === "done" && "text-success bg-success/8",
+                          status === "running" && "text-primary bg-primary/8 font-semibold",
+                          status === "pending" && "text-muted-foreground"
+                        )}
+                      >
+                        {status === "done" ? <Check className="h-4 w-4" /> : status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                        <span className="text-xs">{stage.label}</span>
+                        {stage.key === "generating" && status === "running" && generatedCount > 0 && (
+                          <span className="text-[10px] text-muted-foreground ml-auto">{generatedCount}/{outputCount[0]}</span>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
         </div>
       </div>
