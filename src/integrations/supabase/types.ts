@@ -107,6 +107,7 @@ export type Database = {
       }
       feedback: {
         Row: {
+          analyzed_instructions: string | null
           asset_id: string
           created_at: string
           feedback_text: string
@@ -114,6 +115,7 @@ export type Database = {
           project_id: string
         }
         Insert: {
+          analyzed_instructions?: string | null
           asset_id: string
           created_at?: string
           feedback_text: string
@@ -121,6 +123,7 @@ export type Database = {
           project_id: string
         }
         Update: {
+          analyzed_instructions?: string | null
           asset_id?: string
           created_at?: string
           feedback_text?: string

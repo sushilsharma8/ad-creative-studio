@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 
@@ -141,11 +142,15 @@ export function AppSidebar({ selectedProjectId, onSelectProject }: AppSidebarPro
         </SidebarGroup>
       </SidebarContent>
 
-      {!collapsed && trashed.length > 0 && (
-        <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 border-t border-sidebar-border">
+        <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-2")}>
+          {!collapsed && <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Theme</span>}
+          <ThemeToggle collapsed={collapsed} />
+        </div>
+        {!collapsed && trashed.length > 0 && (
           <Collapsible open={trashOpen} onOpenChange={setTrashOpen}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between text-muted-foreground text-xs rounded-xl h-8">
+              <Button variant="ghost" className="w-full justify-between text-muted-foreground text-xs rounded-xl h-8 mt-2">
                 <span className="flex items-center gap-1.5"><Trash2 className="h-3 w-3" />Trash ({trashed.length})</span>
                 <ChevronDown className={cn("h-3 w-3 transition-transform", trashOpen && "rotate-180")} />
               </Button>
@@ -168,8 +173,8 @@ export function AppSidebar({ selectedProjectId, onSelectProject }: AppSidebarPro
               </div>
             </CollapsibleContent>
           </Collapsible>
-        </SidebarFooter>
-      )}
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }

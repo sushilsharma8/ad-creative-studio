@@ -1,3 +1,4 @@
+// @ts-nocheck — Edge Function runs on Deno; use Deno extension + supabase/functions/deno.json for type-checking
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -457,7 +458,7 @@ async function runResearchAgent(
 ${knowledgeBase ? `KNOWLEDGE BASE:\n${knowledgeBase}\n\n` : ""}
 ${refVertical ? `REFERENCE VERTICAL:\n${refVertical}\n\n` : ""}
 ${webContext ? `WEB RESEARCH CONTEXT:\n${webContext}\n\n` : ""}
-${pastFeedback ? `PAST FEEDBACK — Avoid these issues:\n${pastFeedback}\n\n` : ""}
+${pastFeedback ? `PAST FEEDBACK (from users on previous creatives — avoid these issues in new generations):\n${pastFeedback}\n\n` : ""}
 ${imageStyles ? "IMPORTANT: Suggest varied visual styles including: breaking news, collage, editorial, bold typography, meme format, before/after, infographic, testimonial, dark mood vs bright mood." : ""}
 ${inspirationUrls.length > 0 ? `\nINSPIRATION IMAGES: ${inspirationUrls.length} reference images have been provided. Analyze their visual style, color palette, composition, typography, and mood. Incorporate these observations into your visual_notes to guide the creative direction.` : ""}
 
@@ -542,7 +543,7 @@ RESEARCH FINDINGS:
 - Emotional Triggers: ${JSON.stringify(research.emotional_triggers)}
 - Visual Notes: ${research.visual_notes}
 
-${pastFeedback ? `PAST FEEDBACK — Avoid these issues:\n${pastFeedback}\n\n` : ""}
+${pastFeedback ? `PAST FEEDBACK (from users — do not repeat these mistakes in new creatives):\n${pastFeedback}\n\n` : ""}
 ${imageStyles ? "CRITICAL: Each concept MUST use a DIFFERENT visual style (e.g., breaking news, collage, editorial, bold type, meme, before/after, infographic, testimonial, dark vs bright)." : ""}
 ${seedDescription ? `SEED IMAGE GUIDANCE: ${seedDescription}\nCopy layout/color/style ONLY. Do NOT copy literal products, logos, or industry elements from different verticals.` : ""}
 ${inspirationUrls.length > 0 ? `\nINSPIRATION IMAGES: ${inspirationUrls.length} reference images are provided. Study their composition, color grading, typography style, and visual mood. Weave these stylistic elements into your image_prompt descriptions — blend them creatively across concepts rather than copying any single reference literally.` : ""}
@@ -637,17 +638,9 @@ Respond in JSON format: { "needs_regeneration": boolean, "improved_image_prompt"
 }
 
 // ─── Text Safety Rules (prepended to every image prompt) ───
-
-const TEXT_SAFETY_RULES = `ABSOLUTE TEXT SAFETY RULES:
-1. ALL text must stay within a 100px safe zone from every edge (top/bottom/left/right)
-2. No letter, word, or punctuation may appear in the outer 100px border
-3. If text is too wide → shrink font size, break into lines, or abbreviate. NEVER overflow.
-4. Multi-panel layouts: each panel must independently enforce its own 100px safe zone
-5. Prefer centered text placement
-6. Use smaller fonts than you think necessary — readable small > large clipped
-7. Output must be exactly 1024x1024 square format.
-
-`;
+// Use a short instruction line so the model applies layout rules without drawing them.
+// Do NOT paste the full "ABSOLUTE TEXT SAFETY RULES" text — image models render it as content.
+const TEXT_SAFETY_RULES = `[Composition only: 100px margin from every edge, all text inside that safe zone; smaller readable fonts; 1024x1024 square. Do not draw or render this instruction.] `;
 
 // ─── Main Pipeline ───
 
@@ -694,17 +687,22 @@ serve(async (req) => {
     const resolvedImageModel = pickModel(image_model, IMAGE_MODELS, true);
     const resolvedTextModel = pickModel(text_model, TEXT_MODELS);
 
-    // Fetch past feedback
+    // Fetch past feedback (use AI-analyzed instructions when available for next generation)
     let pastFeedback = "";
     const { data: fbData } = await supabase
       .from("feedback")
-      .select("feedback_text")
+      .select("feedback_text, analyzed_instructions")
       .eq("project_id", project_id)
       .order("created_at", { ascending: false })
       .limit(30);
 
     if (fbData?.length) {
-      pastFeedback = fbData.map((f: any, i: number) => `${i + 1}. ${f.feedback_text}`).join("\n");
+      pastFeedback = fbData
+        .map((f: any, i: number) => {
+          const text = (f.analyzed_instructions && f.analyzed_instructions.trim()) ? f.analyzed_instructions.trim() : f.feedback_text;
+          return `${i + 1}. ${text}`;
+        })
+        .join("\n");
     }
 
     // Use SSE for progress
@@ -741,7 +739,7 @@ serve(async (req) => {
             : "";
           const concepts = await runConceptingAgent(
             resolvedTextModel, research, userPrompt,
-            Math.min(output_count, 4), pastFeedback, modes.imageStyles, seedDesc, inspiration_image_urls
+            Math.min(output_count, 10), pastFeedback, modes.imageStyles, seedDesc, inspiration_image_urls
           );
           send("stage", { stage: "concepting", status: "done", data: concepts });
 

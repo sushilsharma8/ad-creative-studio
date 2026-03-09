@@ -2,3 +2,6 @@ project_id = "iwzqcaxysobeosbbbwtw"
 
 [functions.generate-ads]
 verify_jwt = false
+
+[functions.submit-feedback]
+verify_jwt = false

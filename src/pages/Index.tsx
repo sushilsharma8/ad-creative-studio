@@ -6,11 +6,14 @@ import { CreativeLab } from "@/components/CreativeLab";
 import { AssetLibrary } from "@/components/AssetLibrary";
 import { ActivityLog } from "@/components/ActivityLog";
 import { InspirationTab } from "@/components/InspirationTab";
-import { Sparkles, Image, Activity, Upload, Zap } from "lucide-react";
+import { FeedbackTab } from "@/components/FeedbackTab";
+import { Sparkles, Image, Activity, Upload, Zap, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Index = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("lab");
+  const [selectedAssetIdFromFeedback, setSelectedAssetIdFromFeedback] = useState<string | null>(null);
 
   return (
     <SidebarProvider>
@@ -49,13 +52,16 @@ const Index = () => {
               </div>
             ) : (
               <div className="p-4 md:p-6">
-                <Tabs defaultValue="lab" className="space-y-5">
-                  <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto gap-1">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
+                  <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto gap-1 text-muted-foreground">
                     <TabsTrigger value="lab" className="gap-1.5 text-xs rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-4 py-2 transition-all">
                       <Sparkles className="h-3.5 w-3.5" /> Lab
                     </TabsTrigger>
                     <TabsTrigger value="assets" className="gap-1.5 text-xs rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-4 py-2 transition-all">
                       <Image className="h-3.5 w-3.5" /> Assets
+                    </TabsTrigger>
+                    <TabsTrigger value="feedback" className="gap-1.5 text-xs rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-4 py-2 transition-all">
+                      <MessageSquare className="h-3.5 w-3.5" /> Feedback
                     </TabsTrigger>
                     <TabsTrigger value="activity" className="gap-1.5 text-xs rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-4 py-2 transition-all">
                       <Activity className="h-3.5 w-3.5" /> Activity
@@ -65,16 +71,29 @@ const Index = () => {
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="lab">
+                  <TabsContent value="lab" forceMount className="data-[state=inactive]:hidden">
                     <CreativeLab projectId={selectedProjectId} />
                   </TabsContent>
-                  <TabsContent value="assets">
-                    <AssetLibrary projectId={selectedProjectId} />
+                  <TabsContent value="assets" forceMount className="data-[state=inactive]:hidden">
+                    <AssetLibrary
+                      projectId={selectedProjectId}
+                      openAssetId={selectedAssetIdFromFeedback}
+                      onClearOpenAssetId={() => setSelectedAssetIdFromFeedback(null)}
+                    />
                   </TabsContent>
-                  <TabsContent value="activity">
+                  <TabsContent value="feedback" forceMount className="data-[state=inactive]:hidden">
+                    <FeedbackTab
+                      projectId={selectedProjectId}
+                      onViewAsset={(assetId) => {
+                        setSelectedAssetIdFromFeedback(assetId);
+                        setActiveTab("assets");
+                      }}
+                    />
+                  </TabsContent>
+                  <TabsContent value="activity" forceMount className="data-[state=inactive]:hidden">
                     <ActivityLog projectId={selectedProjectId} />
                   </TabsContent>
-                  <TabsContent value="inspiration">
+                  <TabsContent value="inspiration" forceMount className="data-[state=inactive]:hidden">
                     <InspirationTab projectId={selectedProjectId} />
                   </TabsContent>
                 </Tabs>

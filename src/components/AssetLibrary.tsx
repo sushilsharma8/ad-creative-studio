@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Info, Star, ThumbsUp, Meh, ThumbsDown, CheckSquare, Download } from "lucide-react";
+import { Info, Star, ThumbsUp, Meh, ThumbsDown, CheckSquare, Download, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAssets } from "@/hooks/useAssets";
@@ -19,14 +19,28 @@ const RATINGS = [
 
 interface AssetLibraryProps {
   projectId: string;
+  /** When set (e.g. from Feedback tab "View creative"), open this asset's detail dialog */
+  openAssetId?: string | null;
+  onClearOpenAssetId?: () => void;
 }
 
-export function AssetLibrary({ projectId }: AssetLibraryProps) {
+export function AssetLibrary({ projectId, openAssetId, onClearOpenAssetId }: AssetLibraryProps) {
   const { assets, rateAsset } = useAssets(projectId);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [focusFeedback, setFocusFeedback] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const data = assets.data ?? [];
+
+  useEffect(() => {
+    if (!openAssetId || !data.length || !onClearOpenAssetId) return;
+    const asset = data.find((a) => a.id === openAssetId);
+    if (asset) {
+      setSelectedAsset(asset);
+      setFocusFeedback(false);
+    }
+    onClearOpenAssetId();
+  }, [openAssetId, data, onClearOpenAssetId]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -100,22 +114,22 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
                 transition={{ delay: i * 0.04, duration: 0.3 }}
               >
                 <Card className={cn(
-                  "group relative overflow-hidden rounded-2xl bg-card border-border shadow-card hover:shadow-card-hover transition-all duration-300",
+                  "group relative overflow-hidden rounded-2xl bg-card border-border shadow-card hover:shadow-card-hover transition-all duration-300 flex flex-col",
                   selectedIds.has(asset.id) && "ring-2 ring-primary"
                 )}>
-                  {/* Facebook Chrome Header */}
-                  <div className="flex items-center gap-2.5 p-3 pb-2">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-[10px] font-extrabold text-primary-foreground">
+                  {/* Facebook-style header: AD + Brand + Sponsored */}
+                  <div className="flex items-center gap-2.5 px-3 pt-3 pb-1 shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-[10px] font-extrabold text-primary-foreground shrink-0">
                       AD
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold truncate">Your Brand</p>
-                      <p className="text-[10px] text-muted-foreground">Sponsored · 🌐</p>
+                      <p className="text-xs font-bold text-foreground truncate">Your Brand</p>
+                      <p className="text-[10px] text-muted-foreground">Sponsored</p>
                     </div>
                     <button
                       onClick={() => toggleSelect(asset.id)}
                       className={cn(
-                        "h-5 w-5 rounded-md flex items-center justify-center text-[10px] transition-all",
+                        "h-5 w-5 rounded-md flex items-center justify-center text-[10px] transition-all shrink-0",
                         selectedIds.has(asset.id) ? "bg-primary text-primary-foreground" : "border border-muted-foreground/20 hover:border-primary"
                       )}
                     >
@@ -123,43 +137,21 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
                     </button>
                   </div>
 
-                  {asset.caption && (
-                    <p className="px-3 pb-2 text-xs line-clamp-4 leading-relaxed">{asset.caption}</p>
-                  )}
+                  {/* Primary text / description — above image, truncated like Facebook */}
+                  <div className="px-3 pb-2 min-h-[3.5rem] shrink-0">
+                    <p className="text-sm text-foreground leading-snug line-clamp-4 break-words overflow-hidden text-ellipsis">
+                      {asset.caption || "\u00A0"}
+                    </p>
+                  </div>
 
-                  {/* Image */}
-                  <div className="relative aspect-square bg-muted">
+                  {/* Main creative image — zoom on hover, no overlay */}
+                  <div className="relative aspect-square bg-muted shrink-0 overflow-hidden">
                     <img
                       src={asset.image_url || "/placeholder.svg"}
                       alt={asset.headline || "Ad creative"}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
                       loading="lazy"
                     />
-
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center gap-3">
-                      <Button size="sm" className="rounded-full px-5 h-9 text-xs font-bold shadow-float" onClick={() => setSelectedAsset(asset)}>
-                        <Info className="h-3.5 w-3.5 mr-1.5" /> Details
-                      </Button>
-                      <div className="flex gap-1 bg-card/80 backdrop-blur rounded-full px-2 py-1">
-                        {RATINGS.map((r) => {
-                          const Icon = r.icon;
-                          return (
-                            <button
-                              key={r.key}
-                              onClick={() => rateAsset.mutate({ id: asset.id, rating: r.key })}
-                              title={r.label}
-                              className={cn(
-                                "p-2 rounded-full transition-all hover:scale-110",
-                                rating === r.key ? r.color : "text-muted-foreground hover:text-foreground"
-                              )}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
 
                     {/* Winner Badge */}
                     {asset.is_winner && (
@@ -169,17 +161,46 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
                     )}
                   </div>
 
-                  {asset.headline && (
-                    <div className="p-3 pt-2.5">
-                      <p className="text-xs font-bold line-clamp-1">{asset.headline}</p>
-                    </div>
-                  )}
+                  {/* Headline — below image, single line with ellipsis */}
+                  <div className="px-3 py-2.5 shrink-0 border-t border-border/80">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {asset.headline || "\u00A0"}
+                    </p>
+                  </div>
 
-                  {/* FB Actions */}
-                  <div className="flex items-center justify-around py-2.5 border-t border-border text-[10px] text-muted-foreground font-medium">
-                    <span className="hover:text-foreground cursor-pointer transition-colors">👍 Like</span>
-                    <span className="hover:text-foreground cursor-pointer transition-colors">💬 Comment</span>
-                    <span className="hover:text-foreground cursor-pointer transition-colors">↗ Share</span>
+                  {/* Actions: Details, What's wrong?, ratings — below headline, not on image */}
+                  <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-border/80 shrink-0">
+                    <Button size="sm" variant="ghost" className="h-8 rounded-lg text-xs font-medium gap-1.5" onClick={() => { setSelectedAsset(asset); setFocusFeedback(false); }}>
+                      <Info className="h-3.5 w-3.5" /> Details
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 rounded-lg text-xs font-medium gap-1.5 text-primary" onClick={() => { setSelectedAsset(asset); setFocusFeedback(true); }} title="What's wrong? Your feedback improves future generations">
+                      <MessageSquare className="h-3.5 w-3.5" /> What's wrong?
+                    </Button>
+                    <div className="flex gap-0.5 ml-auto">
+                      {RATINGS.map((r) => {
+                        const Icon = r.icon;
+                        return (
+                          <button
+                            key={r.key}
+                            onClick={() => rateAsset.mutate({ id: asset.id, rating: r.key })}
+                            title={r.label}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors hover:bg-muted",
+                              rating === r.key ? r.color : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Facebook-style actions */}
+                  <div className="flex items-center justify-around py-2 border-t border-border text-muted-foreground shrink-0">
+                    <span className="text-xs font-medium hover:text-foreground cursor-pointer transition-colors">Like</span>
+                    <span className="text-xs font-medium hover:text-foreground cursor-pointer transition-colors">Comment</span>
+                    <span className="text-xs font-medium hover:text-foreground cursor-pointer transition-colors">Share</span>
                   </div>
                 </Card>
               </motion.div>
@@ -192,7 +213,8 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
         <AssetDetailDialog
           asset={selectedAsset}
           projectId={projectId}
-          onClose={() => setSelectedAsset(null)}
+          onClose={() => { setSelectedAsset(null); setFocusFeedback(false); }}
+          focusFeedback={focusFeedback}
         />
       )}
     </div>

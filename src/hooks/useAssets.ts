@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { submitFeedback } from "@/lib/generateAds";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Asset = Tables<"assets">;
@@ -83,25 +84,57 @@ export function useFeedback(projectId: string | null, assetId: string | null) {
   const addFeedback = useMutation({
     mutationFn: async (text: string) => {
       if (!projectId || !assetId) throw new Error("Missing project or asset");
-      const { error } = await supabase.from("feedback").insert({
-        project_id: projectId,
-        asset_id: assetId,
-        feedback_text: text,
-      });
-      if (error) throw error;
-
-      await supabase.from("activity_log").insert({
-        project_id: projectId,
-        action_type: "feedback_submitted",
-        description: `Feedback: "${text.slice(0, 50)}..."`,
-        metadata: { asset_id: assetId },
-      });
+      await submitFeedback(projectId, assetId, text.trim());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedback", assetId] });
+      if (projectId) queryClient.invalidateQueries({ queryKey: ["project_feedback", projectId] });
       toast({ title: "Feedback saved" });
     },
   });
 
   return { feedback, addFeedback };
+}
+
+/** All feedback for a project (for Feedback tab) */
+export function useProjectFeedback(projectId: string | null) {
+  return useQuery({
+    queryKey: ["project_feedback", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data: feedbackData, error: feedbackError } = await supabase
+        .from("feedback")
+        .select("id, feedback_text, analyzed_instructions, created_at, asset_id")
+        .eq("project_id", projectId!)
+        .order("created_at", { ascending: false });
+      if (feedbackError) throw feedbackError;
+      if (!feedbackData?.length) return [];
+      const assetIds = [...new Set(feedbackData.map((f) => f.asset_id))];
+      const { data: assetsData, error: assetsError } = await supabase
+        .from("assets")
+        .select("id, headline, image_url")
+        .in("id", assetIds);
+      if (assetsError) throw assetsError;
+      const assetMap = new Map((assetsData ?? []).map((a) => [a.id, a]));
+      return feedbackData.map((f) => ({
+        ...f,
+        asset: assetMap.get(f.asset_id) ?? null,
+      }));
+    },
+  });
+}
+
+/** Delete a feedback entry (for Feedback tab management) */
+export function useDeleteFeedback(projectId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (feedbackId: string) => {
+      const { error } = await supabase.from("feedback").delete().eq("id", feedbackId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project_feedback", projectId] });
+      toast({ title: "Feedback deleted" });
+    },
+  });
 }

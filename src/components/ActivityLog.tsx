@@ -53,9 +53,7 @@ export function ActivityLog({ projectId }: ActivityLogProps) {
 
   return (
     <div className="relative max-w-2xl">
-      {/* Timeline line */}
       <div className="absolute left-5 top-6 bottom-6 w-[2px] bg-border rounded-full" />
-
       <div className="space-y-1">
         {entries.map((entry, i) => {
           const Icon = ICON_MAP[entry.action_type] ?? Activity;

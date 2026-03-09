@@ -34,6 +34,27 @@ export interface GenerateCallbacks {
   onError: (message: string) => void;
 }
 
+/** Submit feedback for an asset; AI analyzes creative + feedback and stores actionable instructions for next generation */
+export async function submitFeedback(projectId: string, assetId: string, feedbackText: string): Promise<void> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-feedback`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({
+      project_id: projectId,
+      asset_id: assetId,
+      feedback_text: feedbackText,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: resp.statusText }));
+    throw new Error(err.error || "Failed to submit feedback");
+  }
+}
+
 export async function generateAds(params: GenerateAdsParams, callbacks: GenerateCallbacks) {
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-ads`;
 

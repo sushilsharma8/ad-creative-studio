@@ -49,12 +49,12 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
   const [prompt, setPrompt] = useState("");
   const [knowledgeBase, setKnowledgeBase] = useState("");
   const [refVertical, setRefVertical] = useState("");
-  const [outputCount, setOutputCount] = useState([2]);
-  const [imageModel, setImageModel] = useState("gemini-flash-image");
-  const [textModel, setTextModel] = useState("gemini-flash");
-  const [modeTrending, setModeTrending] = useState(false);
-  const [modeReddit, setModeReddit] = useState(false);
-  const [modeImageStyles, setModeImageStyles] = useState(false);
+  const [outputCount, setOutputCount] = useState([5]);
+  const [imageModel, setImageModel] = useState("randomize");
+  const [textModel, setTextModel] = useState("randomize");
+  const [modeTrending, setModeTrending] = useState(true);
+  const [modeReddit, setModeReddit] = useState(true);
+  const [modeImageStyles, setModeImageStyles] = useState(true);
   const [deselectedSeeds, setDeselectedSeeds] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
   const [stageStatuses, setStageStatuses] = useState<Record<string, StageStatus>>({});
@@ -140,7 +140,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe the ad you want to generate..."
-                  className="min-h-[100px] bg-muted/50 border-0 rounded-xl resize-none text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30"
+                  className="min-h-[100px] bg-muted/50 border border-input rounded-xl resize-none text-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
                 />
               </div>
 
@@ -151,7 +151,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
                     value={knowledgeBase}
                     onChange={(e) => setKnowledgeBase(e.target.value)}
                     placeholder="Vertical-specific guidance..."
-                    className="min-h-[72px] bg-muted/50 border-0 rounded-xl resize-none text-sm placeholder:text-muted-foreground/60"
+                    className="min-h-[72px] bg-muted/50 border border-input rounded-xl resize-none text-sm placeholder:text-muted-foreground"
                   />
                 </div>
                 <div>
@@ -160,7 +160,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
                     value={refVertical}
                     onChange={(e) => setRefVertical(e.target.value)}
                     placeholder="Competitor references..."
-                    className="min-h-[72px] bg-muted/50 border-0 rounded-xl resize-none text-sm placeholder:text-muted-foreground/60"
+                    className="min-h-[72px] bg-muted/50 border border-input rounded-xl resize-none text-sm placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
@@ -192,7 +192,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
                   <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 block">
                     Outputs: <span className="text-primary font-bold">{outputCount[0]}</span>
                   </Label>
-                  <Slider value={outputCount} onValueChange={setOutputCount} min={1} max={4} step={1} className="mt-4" />
+                  <Slider value={outputCount} onValueChange={setOutputCount} min={1} max={10} step={1} className="mt-4" />
                 </div>
               </div>
 
