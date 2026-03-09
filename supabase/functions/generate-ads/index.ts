@@ -449,7 +449,8 @@ async function runResearchAgent(
   refVertical: string,
   webContext: string,
   pastFeedback: string,
-  imageStyles: boolean
+  imageStyles: boolean,
+  inspirationUrls: string[] = []
 ): Promise<any> {
   const systemPrompt = `You are a world-class advertising research strategist. It is 2026 — all references must be current year. Never reference 2024 or 2025.
 
@@ -458,14 +459,23 @@ ${refVertical ? `REFERENCE VERTICAL:\n${refVertical}\n\n` : ""}
 ${webContext ? `WEB RESEARCH CONTEXT:\n${webContext}\n\n` : ""}
 ${pastFeedback ? `PAST FEEDBACK — Avoid these issues:\n${pastFeedback}\n\n` : ""}
 ${imageStyles ? "IMPORTANT: Suggest varied visual styles including: breaking news, collage, editorial, bold typography, meme format, before/after, infographic, testimonial, dark mood vs bright mood." : ""}
+${inspirationUrls.length > 0 ? `\nINSPIRATION IMAGES: ${inspirationUrls.length} reference images have been provided. Analyze their visual style, color palette, composition, typography, and mood. Incorporate these observations into your visual_notes to guide the creative direction.` : ""}
 
 Analyze the brief and provide research findings using the submit_research tool.`;
+
+  const userContent: any[] = [];
+  
+  // Add inspiration images for the research agent to analyze
+  for (const url of inspirationUrls.slice(0, 4)) {
+    userContent.push({ type: "image_url", image_url: { url } });
+  }
+  userContent.push({ type: "text", text: userPrompt });
 
   const result = await callTextModel(
     textModel,
     [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userContent },
     ],
     [RESEARCH_TOOL],
     { type: "function", function: { name: "submit_research" } }
@@ -476,7 +486,6 @@ Analyze the brief and provide research findings using the submit_research tool.`
     return { ...JSON.parse(toolCall.function.arguments), text_model_used: result.model_used };
   }
 
-  // Fallback: parse from content
   return {
     motivators: ["urgency", "trust", "social proof"],
     angles: ["problem-solution", "testimonial", "fear of missing out"],
