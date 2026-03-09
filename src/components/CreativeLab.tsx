@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, MessageSquare, Palette, X, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useAssets } from "@/hooks/useAssets";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { generateAds, type StageStatus } from "@/lib/generateAds";
 import { cn } from "@/lib/utils";
 
 const IMAGE_MODELS = [
@@ -40,6 +43,7 @@ interface CreativeLabProps {
 
 export function CreativeLab({ projectId }: CreativeLabProps) {
   const { winners } = useAssets(projectId);
+  const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState("");
   const [knowledgeBase, setKnowledgeBase] = useState("");
   const [refVertical, setRefVertical] = useState("");
@@ -51,7 +55,8 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
   const [modeImageStyles, setModeImageStyles] = useState(false);
   const [deselectedSeeds, setDeselectedSeeds] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentStage, setCurrentStage] = useState(-1);
+  const [stageStatuses, setStageStatuses] = useState<Record<string, StageStatus>>({});
+  const [generatedCount, setGeneratedCount] = useState(0);
 
   const winnerAssets = winners.data ?? [];
 
@@ -63,16 +68,60 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
     });
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
-    // Mock pipeline progress
-    for (let i = 0; i < PIPELINE_STAGES.length; i++) {
-      setCurrentStage(i);
-      await new Promise((r) => setTimeout(r, 1500));
+    setStageStatuses({});
+    setGeneratedCount(0);
+
+    const selectedSeeds = winnerAssets
+      .filter((a) => !deselectedSeeds.has(a.id) && a.image_url)
+      .map((a) => a.image_url!);
+
+    try {
+      await generateAds(
+        {
+          project_id: projectId,
+          prompt: prompt.trim(),
+          knowledge_base: knowledgeBase,
+          ref_vertical: refVertical,
+          output_count: outputCount[0],
+          image_model: imageModel,
+          text_model: textModel,
+          modes: { trending: modeTrending, reddit: modeReddit, imageStyles: modeImageStyles },
+          seed_image_urls: selectedSeeds,
+        },
+        {
+          onStage: (update) => {
+            setStageStatuses((prev) => ({ ...prev, [update.stage]: update.status }));
+          },
+          onAsset: (update) => {
+            setGeneratedCount((c) => c + 1);
+            queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
+          },
+          onDone: (data) => {
+            setIsGenerating(false);
+            queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
+            queryClient.invalidateQueries({ queryKey: ["activity_log", projectId] });
+            toast({
+              title: "Generation complete",
+              description: `${data.completed}/${data.total} ads generated successfully.`,
+            });
+          },
+          onError: (message) => {
+            setIsGenerating(false);
+            toast({ title: "Generation failed", description: message, variant: "destructive" });
+          },
+        }
+      );
+    } catch (e) {
+      setIsGenerating(false);
+      toast({ title: "Generation failed", description: String(e), variant: "destructive" });
     }
-    setIsGenerating(false);
-    setCurrentStage(-1);
+  }, [prompt, knowledgeBase, refVertical, outputCount, imageModel, textModel, modeTrending, modeReddit, modeImageStyles, projectId, winnerAssets, deselectedSeeds, queryClient]);
+
+  const getStageStatus = (key: string): "pending" | "running" | "done" => {
+    return stageStatuses[key] || "pending";
   };
 
   return (
@@ -161,7 +210,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
             size="lg"
           >
             {isGenerating ? (
-              <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
+              <><Loader2 className="h-4 w-4 animate-spin" />Generating...{generatedCount > 0 && ` (${generatedCount}/${outputCount[0]})`}</>
             ) : (
               <><Sparkles className="h-4 w-4" />Generate Ads</>
             )}
@@ -224,8 +273,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
               <CardContent className="space-y-2">
                 {PIPELINE_STAGES.map((stage, i) => {
                   const Icon = stage.icon;
-                  const done = i < currentStage;
-                  const active = i === currentStage;
+                  const status = getStageStatus(stage.key);
                   return (
                     <motion.div
                       key={stage.key}
@@ -234,13 +282,16 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
                       transition={{ delay: i * 0.1 }}
                       className={cn(
                         "flex items-center gap-2 text-sm rounded-md px-2 py-1.5 transition-colors",
-                        done && "text-success",
-                        active && "text-primary bg-primary/10",
-                        !done && !active && "text-muted-foreground"
+                        status === "done" && "text-success",
+                        status === "running" && "text-primary bg-primary/10",
+                        status === "pending" && "text-muted-foreground"
                       )}
                     >
-                      {done ? <Check className="h-4 w-4" /> : active ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                      {status === "done" ? <Check className="h-4 w-4" /> : status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
                       {stage.label}
+                      {stage.key === "generating" && status === "running" && generatedCount > 0 && (
+                        <span className="text-xs text-muted-foreground ml-auto">{generatedCount}/{outputCount[0]}</span>
+                      )}
                     </motion.div>
                   );
                 })}
