@@ -110,11 +110,11 @@ export function useProjects() {
   };
 }
 
-async function logActivity(projectId: string, actionType: string, description: string, metadata: Record<string, unknown> = {}) {
-  await supabase.from("activity_log").insert({
+async function logActivity(projectId: string, actionType: string, description: string, metadata: Record<string, string> = {}) {
+  await supabase.from("activity_log").insert([{
     project_id: projectId,
     action_type: actionType,
     description,
-    metadata,
-  });
+    metadata: metadata as unknown as import("@/integrations/supabase/types").Json,
+  }]);
 }
