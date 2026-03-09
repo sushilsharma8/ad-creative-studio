@@ -295,7 +295,6 @@ async function generateOpenAIImage(prompt: string): Promise<{ base64: string }> 
       prompt,
       n: 1,
       size: "1024x1024",
-      output_format: "b64_json",
     }),
   });
 
@@ -305,8 +304,14 @@ async function generateOpenAIImage(prompt: string): Promise<{ base64: string }> 
   }
 
   const data = await resp.json();
-  // gpt-image-1 returns data[].b64_json with output_format
-  return { base64: data.data[0].b64_json };
+  // gpt-image-1 returns data[].url by default
+  const imgUrl = data.data[0].url || data.data[0].b64_json;
+  if (imgUrl && imgUrl.startsWith("http")) {
+    const imgResp = await fetch(imgUrl);
+    const buf = await imgResp.arrayBuffer();
+    return { base64: btoa(String.fromCharCode(...new Uint8Array(buf))) };
+  }
+  return { base64: imgUrl };
 }
 
 async function generateGrokImage(prompt: string): Promise<{ base64: string }> {
