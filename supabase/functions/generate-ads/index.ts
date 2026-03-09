@@ -449,7 +449,8 @@ async function runResearchAgent(
   refVertical: string,
   webContext: string,
   pastFeedback: string,
-  imageStyles: boolean
+  imageStyles: boolean,
+  inspirationUrls: string[] = []
 ): Promise<any> {
   const systemPrompt = `You are a world-class advertising research strategist. It is 2026 — all references must be current year. Never reference 2024 or 2025.
 
@@ -458,14 +459,23 @@ ${refVertical ? `REFERENCE VERTICAL:\n${refVertical}\n\n` : ""}
 ${webContext ? `WEB RESEARCH CONTEXT:\n${webContext}\n\n` : ""}
 ${pastFeedback ? `PAST FEEDBACK — Avoid these issues:\n${pastFeedback}\n\n` : ""}
 ${imageStyles ? "IMPORTANT: Suggest varied visual styles including: breaking news, collage, editorial, bold typography, meme format, before/after, infographic, testimonial, dark mood vs bright mood." : ""}
+${inspirationUrls.length > 0 ? `\nINSPIRATION IMAGES: ${inspirationUrls.length} reference images have been provided. Analyze their visual style, color palette, composition, typography, and mood. Incorporate these observations into your visual_notes to guide the creative direction.` : ""}
 
 Analyze the brief and provide research findings using the submit_research tool.`;
+
+  const userContent: any[] = [];
+  
+  // Add inspiration images for the research agent to analyze
+  for (const url of inspirationUrls.slice(0, 4)) {
+    userContent.push({ type: "image_url", image_url: { url } });
+  }
+  userContent.push({ type: "text", text: userPrompt });
 
   const result = await callTextModel(
     textModel,
     [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userContent },
     ],
     [RESEARCH_TOOL],
     { type: "function", function: { name: "submit_research" } }
@@ -476,7 +486,6 @@ Analyze the brief and provide research findings using the submit_research tool.`
     return { ...JSON.parse(toolCall.function.arguments), text_model_used: result.model_used };
   }
 
-  // Fallback: parse from content
   return {
     motivators: ["urgency", "trust", "social proof"],
     angles: ["problem-solution", "testimonial", "fear of missing out"],
@@ -522,7 +531,8 @@ async function runConceptingAgent(
   conceptCount: number,
   pastFeedback: string,
   imageStyles: boolean,
-  seedDescription: string
+  seedDescription: string,
+  inspirationUrls: string[] = []
 ): Promise<any> {
   const systemPrompt = `You are a top creative director. Generate exactly ${conceptCount} ad concepts. It is 2026.
 
@@ -535,15 +545,22 @@ RESEARCH FINDINGS:
 ${pastFeedback ? `PAST FEEDBACK — Avoid these issues:\n${pastFeedback}\n\n` : ""}
 ${imageStyles ? "CRITICAL: Each concept MUST use a DIFFERENT visual style (e.g., breaking news, collage, editorial, bold type, meme, before/after, infographic, testimonial, dark vs bright)." : ""}
 ${seedDescription ? `SEED IMAGE GUIDANCE: ${seedDescription}\nCopy layout/color/style ONLY. Do NOT copy literal products, logos, or industry elements from different verticals.` : ""}
+${inspirationUrls.length > 0 ? `\nINSPIRATION IMAGES: ${inspirationUrls.length} reference images are provided. Study their composition, color grading, typography style, and visual mood. Weave these stylistic elements into your image_prompt descriptions — blend them creatively across concepts rather than copying any single reference literally.` : ""}
 
 Each concept must have a unique angle. Generate image prompts that describe the visual in detail.
 Use the submit_concepts tool.`;
+
+  const userContent: any[] = [];
+  for (const url of inspirationUrls.slice(0, 4)) {
+    userContent.push({ type: "image_url", image_url: { url } });
+  }
+  userContent.push({ type: "text", text: userPrompt });
 
   const result = await callTextModel(
     textModel,
     [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userContent },
     ],
     [CONCEPT_TOOL],
     { type: "function", function: { name: "submit_concepts" } }
@@ -650,6 +667,7 @@ serve(async (req) => {
       text_model = "gemini-flash",
       modes = { trending: false, reddit: false, imageStyles: false },
       seed_image_urls = [],
+      inspiration_image_urls = [],
     } = await req.json();
 
     if (!project_id || !userPrompt) {
@@ -712,7 +730,7 @@ serve(async (req) => {
           send("stage", { stage: "agent", status: "running" });
           const research = await runResearchAgent(
             resolvedTextModel, userPrompt, knowledge_base, ref_vertical,
-            webContext, pastFeedback, modes.imageStyles
+            webContext, pastFeedback, modes.imageStyles, inspiration_image_urls
           );
           send("stage", { stage: "agent", status: "done", data: research });
 
@@ -723,7 +741,7 @@ serve(async (req) => {
             : "";
           const concepts = await runConceptingAgent(
             resolvedTextModel, research, userPrompt,
-            Math.min(output_count, 4), pastFeedback, modes.imageStyles, seedDesc
+            Math.min(output_count, 4), pastFeedback, modes.imageStyles, seedDesc, inspiration_image_urls
           );
           send("stage", { stage: "concepting", status: "done", data: concepts });
 
@@ -734,7 +752,9 @@ serve(async (req) => {
           const imageResults = await Promise.allSettled(
             conceptList.map(async (concept: any, idx: number) => {
               const fullPrompt = TEXT_SAFETY_RULES + concept.image_prompt;
-              const seedUrl = seed_image_urls[idx % seed_image_urls.length] || undefined;
+              // Use winner seeds first, fall back to inspiration images as visual references
+              const allRefs = seed_image_urls.length > 0 ? seed_image_urls : inspiration_image_urls;
+              const seedUrl = allRefs.length > 0 ? allRefs[idx % allRefs.length] : undefined;
 
               let result = await generateImage(resolvedImageModel, fullPrompt, seedUrl);
 

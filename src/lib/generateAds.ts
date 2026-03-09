@@ -10,6 +10,7 @@ export interface GenerateAdsParams {
   text_model?: string;
   modes?: { trending: boolean; reddit: boolean; imageStyles: boolean };
   seed_image_urls?: string[];
+  inspiration_image_urls?: string[];
 }
 
 export type StageStatus = "pending" | "running" | "done";

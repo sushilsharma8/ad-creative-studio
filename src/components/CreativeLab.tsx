@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useAssets } from "@/hooks/useAssets";
+import { useInspirationAssets } from "@/hooks/useInspirationAssets";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { generateAds, type StageStatus } from "@/lib/generateAds";
@@ -43,6 +44,7 @@ interface CreativeLabProps {
 
 export function CreativeLab({ projectId }: CreativeLabProps) {
   const { winners } = useAssets(projectId);
+  const { inspirations } = useInspirationAssets(projectId);
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState("");
   const [knowledgeBase, setKnowledgeBase] = useState("");
@@ -59,6 +61,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
   const [generatedCount, setGeneratedCount] = useState(0);
 
   const winnerAssets = winners.data ?? [];
+  const inspirationAssets = inspirations.data ?? [];
 
   const toggleSeed = (id: string) => {
     setDeselectedSeeds((prev) => {
@@ -78,6 +81,10 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
       .filter((a) => !deselectedSeeds.has(a.id) && a.image_url)
       .map((a) => a.image_url!);
 
+    const inspirationUrls = inspirationAssets
+      .filter((a) => a.image_url)
+      .map((a) => a.image_url);
+
     try {
       await generateAds(
         {
@@ -90,6 +97,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
           text_model: textModel,
           modes: { trending: modeTrending, reddit: modeReddit, imageStyles: modeImageStyles },
           seed_image_urls: selectedSeeds,
+          inspiration_image_urls: inspirationUrls,
         },
         {
           onStage: (update) => {
