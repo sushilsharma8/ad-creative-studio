@@ -730,7 +730,7 @@ serve(async (req) => {
           send("stage", { stage: "agent", status: "running" });
           const research = await runResearchAgent(
             resolvedTextModel, userPrompt, knowledge_base, ref_vertical,
-            webContext, pastFeedback, modes.imageStyles
+            webContext, pastFeedback, modes.imageStyles, inspiration_image_urls
           );
           send("stage", { stage: "agent", status: "done", data: research });
 
@@ -741,7 +741,7 @@ serve(async (req) => {
             : "";
           const concepts = await runConceptingAgent(
             resolvedTextModel, research, userPrompt,
-            Math.min(output_count, 4), pastFeedback, modes.imageStyles, seedDesc
+            Math.min(output_count, 4), pastFeedback, modes.imageStyles, seedDesc, inspiration_image_urls
           );
           send("stage", { stage: "concepting", status: "done", data: concepts });
 
