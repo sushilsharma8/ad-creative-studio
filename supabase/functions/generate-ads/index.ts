@@ -531,7 +531,8 @@ async function runConceptingAgent(
   conceptCount: number,
   pastFeedback: string,
   imageStyles: boolean,
-  seedDescription: string
+  seedDescription: string,
+  inspirationUrls: string[] = []
 ): Promise<any> {
   const systemPrompt = `You are a top creative director. Generate exactly ${conceptCount} ad concepts. It is 2026.
 
@@ -544,15 +545,22 @@ RESEARCH FINDINGS:
 ${pastFeedback ? `PAST FEEDBACK — Avoid these issues:\n${pastFeedback}\n\n` : ""}
 ${imageStyles ? "CRITICAL: Each concept MUST use a DIFFERENT visual style (e.g., breaking news, collage, editorial, bold type, meme, before/after, infographic, testimonial, dark vs bright)." : ""}
 ${seedDescription ? `SEED IMAGE GUIDANCE: ${seedDescription}\nCopy layout/color/style ONLY. Do NOT copy literal products, logos, or industry elements from different verticals.` : ""}
+${inspirationUrls.length > 0 ? `\nINSPIRATION IMAGES: ${inspirationUrls.length} reference images are provided. Study their composition, color grading, typography style, and visual mood. Weave these stylistic elements into your image_prompt descriptions — blend them creatively across concepts rather than copying any single reference literally.` : ""}
 
 Each concept must have a unique angle. Generate image prompts that describe the visual in detail.
 Use the submit_concepts tool.`;
+
+  const userContent: any[] = [];
+  for (const url of inspirationUrls.slice(0, 4)) {
+    userContent.push({ type: "image_url", image_url: { url } });
+  }
+  userContent.push({ type: "text", text: userPrompt });
 
   const result = await callTextModel(
     textModel,
     [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userContent },
     ],
     [CONCEPT_TOOL],
     { type: "function", function: { name: "submit_concepts" } }
