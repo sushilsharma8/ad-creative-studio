@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useAssets } from "@/hooks/useAssets";
+import { useInspirationAssets } from "@/hooks/useInspirationAssets";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { generateAds, type StageStatus } from "@/lib/generateAds";
