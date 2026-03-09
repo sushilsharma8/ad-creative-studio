@@ -74,7 +74,8 @@ async function callSingleTextModel(
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not set");
 
-  const body: any = { model, messages, temperature: 0.8 };
+  // GPT-5 only supports temperature=1, so skip custom temperature for OpenAI models
+  const body: any = model.startsWith("openai/") ? { model, messages } : { model, messages, temperature: 0.8 };
   if (tools) body.tools = tools;
   if (toolChoice) body.tool_choice = toolChoice;
 
@@ -226,7 +227,7 @@ async function generateGeminiImage(model: string, prompt: string, seedUrl?: stri
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages }),
+    body: JSON.stringify({ model, messages, modalities: ["text", "image"] }),
   });
 
   if (!resp.ok) {
@@ -235,8 +236,10 @@ async function generateGeminiImage(model: string, prompt: string, seedUrl?: stri
   }
 
   const data = await resp.json();
-  const content = data.choices?.[0]?.message?.content;
+  const msg = data.choices?.[0]?.message;
+  const content = msg?.content;
 
+  // Case 1: content is array with image_url part
   if (Array.isArray(content)) {
     const imgPart = content.find((c: any) => c.type === "image_url");
     if (imgPart?.image_url?.url) {
@@ -244,13 +247,28 @@ async function generateGeminiImage(model: string, prompt: string, seedUrl?: stri
       if (url.startsWith("data:")) {
         return { base64: url.split(",")[1] };
       }
-      // Download and convert
       const imgResp = await fetch(url);
       const buf = await imgResp.arrayBuffer();
       return { base64: btoa(String.fromCharCode(...new Uint8Array(buf))) };
     }
   }
 
+  // Case 2: content is a string containing a data URI
+  if (typeof content === "string") {
+    const dataUriMatch = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
+    if (dataUriMatch) {
+      return { base64: dataUriMatch[1] };
+    }
+    // Could be a URL
+    const urlMatch = content.match(/https?:\/\/\S+\.(png|jpg|jpeg|webp)/i);
+    if (urlMatch) {
+      const imgResp = await fetch(urlMatch[0]);
+      const buf = await imgResp.arrayBuffer();
+      return { base64: btoa(String.fromCharCode(...new Uint8Array(buf))) };
+    }
+  }
+
+  console.error("Gemini response structure:", JSON.stringify(data).slice(0, 500));
   throw new Error("No image in Gemini response");
 }
 
@@ -266,7 +284,7 @@ async function generateOpenAIImage(prompt: string): Promise<{ base64: string }> 
       prompt,
       n: 1,
       size: "1024x1024",
-      response_format: "b64_json",
+      output_format: "b64_json",
     }),
   });
 
@@ -276,6 +294,7 @@ async function generateOpenAIImage(prompt: string): Promise<{ base64: string }> 
   }
 
   const data = await resp.json();
+  // gpt-image-1 returns data[].b64_json with output_format
   return { base64: data.data[0].b64_json };
 }
 
