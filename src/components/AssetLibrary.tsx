@@ -68,22 +68,25 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="sm" onClick={selectAll} className="bg-secondary/50 text-foreground">
-          <CheckSquare className="h-4 w-4 mr-1" />
+        <Button variant="outline" size="sm" onClick={selectAll} className="rounded-full text-xs h-8 px-4 border-border">
+          <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
           {selectedIds.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}
         </Button>
-        <Button variant="outline" size="sm" onClick={exportCSV} disabled={selectedIds.size === 0} className="bg-secondary/50 text-foreground">
-          <Download className="h-4 w-4 mr-1" />
-          Export CSV ({selectedIds.size})
+        <Button variant="outline" size="sm" onClick={exportCSV} disabled={selectedIds.size === 0} className="rounded-full text-xs h-8 px-4 border-border">
+          <Download className="h-3.5 w-3.5 mr-1.5" />
+          Export ({selectedIds.size})
         </Button>
       </div>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-          No assets yet. Generate some ads in Creative Lab!
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
+            <Star className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">No assets yet. Generate some ads in the Lab!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -92,37 +95,36 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
             return (
               <motion.div
                 key={asset.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
+                transition={{ delay: i * 0.04, duration: 0.3 }}
               >
                 <Card className={cn(
-                  "group relative overflow-hidden bg-card border-border transition-all hover:border-primary/50",
+                  "group relative overflow-hidden rounded-2xl bg-card border-border shadow-card hover:shadow-card-hover transition-all duration-300",
                   selectedIds.has(asset.id) && "ring-2 ring-primary"
                 )}>
                   {/* Facebook Chrome Header */}
-                  <div className="flex items-center gap-2 p-3 pb-2">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                  <div className="flex items-center gap-2.5 p-3 pb-2">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-[10px] font-extrabold text-primary-foreground">
                       AD
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">Your Brand</p>
+                      <p className="text-xs font-bold truncate">Your Brand</p>
                       <p className="text-[10px] text-muted-foreground">Sponsored · 🌐</p>
                     </div>
                     <button
                       onClick={() => toggleSelect(asset.id)}
                       className={cn(
-                        "h-5 w-5 rounded border flex items-center justify-center text-xs transition-colors",
-                        selectedIds.has(asset.id) ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground/30"
+                        "h-5 w-5 rounded-md flex items-center justify-center text-[10px] transition-all",
+                        selectedIds.has(asset.id) ? "bg-primary text-primary-foreground" : "border border-muted-foreground/20 hover:border-primary"
                       )}
                     >
                       {selectedIds.has(asset.id) && "✓"}
                     </button>
                   </div>
 
-                  {/* Caption */}
                   {asset.caption && (
-                    <p className="px-3 pb-2 text-xs line-clamp-2">{asset.caption}</p>
+                    <p className="px-3 pb-2 text-xs line-clamp-2 leading-relaxed">{asset.caption}</p>
                   )}
 
                   {/* Image */}
@@ -135,11 +137,11 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
                     />
 
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
-                      <Button size="sm" variant="secondary" onClick={() => setSelectedAsset(asset)}>
-                        <Info className="h-4 w-4 mr-1" /> Details
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col items-center justify-center gap-3">
+                      <Button size="sm" className="rounded-full px-5 h-9 text-xs font-bold shadow-float" onClick={() => setSelectedAsset(asset)}>
+                        <Info className="h-3.5 w-3.5 mr-1.5" /> Details
                       </Button>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 bg-card/80 backdrop-blur rounded-full px-2 py-1">
                         {RATINGS.map((r) => {
                           const Icon = r.icon;
                           return (
@@ -148,8 +150,8 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
                               onClick={() => rateAsset.mutate({ id: asset.id, rating: r.key })}
                               title={r.label}
                               className={cn(
-                                "p-2 rounded-md transition-colors hover:bg-muted",
-                                rating === r.key ? r.color : "text-muted-foreground"
+                                "p-2 rounded-full transition-all hover:scale-110",
+                                rating === r.key ? r.color : "text-muted-foreground hover:text-foreground"
                               )}
                             >
                               <Icon className="h-4 w-4" />
@@ -161,24 +163,23 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
 
                     {/* Winner Badge */}
                     {asset.is_winner && (
-                      <div className="absolute top-2 right-2 bg-warning text-warning-foreground rounded-full p-1">
+                      <div className="absolute top-2.5 right-2.5 bg-warning text-warning-foreground rounded-full p-1.5 shadow-sm">
                         <Star className="h-3 w-3" />
                       </div>
                     )}
                   </div>
 
-                  {/* Headline */}
                   {asset.headline && (
-                    <div className="p-3 pt-2 border-t border-border">
-                      <p className="text-xs font-medium line-clamp-1">{asset.headline}</p>
+                    <div className="p-3 pt-2.5">
+                      <p className="text-xs font-bold line-clamp-1">{asset.headline}</p>
                     </div>
                   )}
 
                   {/* FB Actions */}
-                  <div className="flex items-center justify-around py-2 border-t border-border text-[10px] text-muted-foreground">
-                    <span>👍 Like</span>
-                    <span>💬 Comment</span>
-                    <span>↗ Share</span>
+                  <div className="flex items-center justify-around py-2.5 border-t border-border text-[10px] text-muted-foreground font-medium">
+                    <span className="hover:text-foreground cursor-pointer transition-colors">👍 Like</span>
+                    <span className="hover:text-foreground cursor-pointer transition-colors">💬 Comment</span>
+                    <span className="hover:text-foreground cursor-pointer transition-colors">↗ Share</span>
                   </div>
                 </Card>
               </motion.div>
