@@ -97,7 +97,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
           text_model: textModel,
           modes: { trending: modeTrending, reddit: modeReddit, imageStyles: modeImageStyles },
           seed_image_urls: selectedSeeds,
-        },
+          inspiration_image_urls: inspirationUrls,
         {
           onStage: (update) => {
             setStageStatuses((prev) => ({ ...prev, [update.stage]: update.status }));
