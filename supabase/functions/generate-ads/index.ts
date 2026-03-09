@@ -227,7 +227,7 @@ async function generateGeminiImage(model: string, prompt: string, seedUrl?: stri
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages }),
+    body: JSON.stringify({ model, messages, modalities: ["text", "image"] }),
   });
 
   if (!resp.ok) {
