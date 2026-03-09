@@ -61,6 +61,7 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
   const [generatedCount, setGeneratedCount] = useState(0);
 
   const winnerAssets = winners.data ?? [];
+  const inspirationAssets = inspirations.data ?? [];
 
   const toggleSeed = (id: string) => {
     setDeselectedSeeds((prev) => {
