@@ -14,7 +14,227 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          project_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          project_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_type: string
+          caption: string | null
+          created_at: string
+          headline: string | null
+          id: string
+          image_prompt: string | null
+          image_url: string | null
+          is_winner: boolean
+          model_used: string | null
+          project_id: string
+          tags: Json | null
+          text_model_used: string | null
+          user_id: string
+        }
+        Insert: {
+          asset_type?: string
+          caption?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          is_winner?: boolean
+          model_used?: string | null
+          project_id: string
+          tags?: Json | null
+          text_model_used?: string | null
+          user_id?: string
+        }
+        Update: {
+          asset_type?: string
+          caption?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          is_winner?: boolean
+          model_used?: string | null
+          project_id?: string
+          tags?: Json | null
+          text_model_used?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback: {
+        Row: {
+          asset_id: string
+          created_at: string
+          feedback_text: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          feedback_text: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generations: {
+        Row: {
+          completed_count: number
+          created_at: string
+          id: string
+          project_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_count?: number
+          created_at?: string
+          id?: string
+          project_id: string
+          status?: string
+          user_id?: string
+        }
+        Update: {
+          completed_count?: number
+          created_at?: string
+          id?: string
+          project_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspiration_assets: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          project_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspiration_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
