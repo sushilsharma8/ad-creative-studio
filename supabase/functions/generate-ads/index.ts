@@ -74,7 +74,8 @@ async function callSingleTextModel(
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not set");
 
-  const body: any = { model, messages, temperature: 0.8 };
+  // GPT-5 only supports temperature=1, so skip custom temperature for OpenAI models
+  const body: any = model.startsWith("openai/") ? { model, messages } : { model, messages, temperature: 0.8 };
   if (tools) body.tools = tools;
   if (toolChoice) body.tool_choice = toolChoice;
 
