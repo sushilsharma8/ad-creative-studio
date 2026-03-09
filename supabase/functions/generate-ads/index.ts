@@ -237,34 +237,45 @@ async function generateGeminiImage(model: string, prompt: string, seedUrl?: stri
 
   const data = await resp.json();
   const msg = data.choices?.[0]?.message;
+
+  // Helper to extract base64 from a URL (data URI or http)
+  const extractBase64 = async (url: string): Promise<string> => {
+    if (url.startsWith("data:")) {
+      return url.split(",")[1];
+    }
+    const imgResp = await fetch(url);
+    const buf = await imgResp.arrayBuffer();
+    return btoa(String.fromCharCode(...new Uint8Array(buf)));
+  };
+
+  // Case 0: images array in message (Gemini image models return this)
+  if (Array.isArray(msg?.images) && msg.images.length > 0) {
+    const img = msg.images[0];
+    const url = img?.image_url?.url || img?.url;
+    if (url) {
+      return { base64: await extractBase64(url) };
+    }
+  }
+
   const content = msg?.content;
 
   // Case 1: content is array with image_url part
   if (Array.isArray(content)) {
     const imgPart = content.find((c: any) => c.type === "image_url");
     if (imgPart?.image_url?.url) {
-      const url = imgPart.image_url.url;
-      if (url.startsWith("data:")) {
-        return { base64: url.split(",")[1] };
-      }
-      const imgResp = await fetch(url);
-      const buf = await imgResp.arrayBuffer();
-      return { base64: btoa(String.fromCharCode(...new Uint8Array(buf))) };
+      return { base64: await extractBase64(imgPart.image_url.url) };
     }
   }
 
-  // Case 2: content is a string containing a data URI
+  // Case 2: content is a string containing a data URI or URL
   if (typeof content === "string") {
     const dataUriMatch = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
     if (dataUriMatch) {
       return { base64: dataUriMatch[1] };
     }
-    // Could be a URL
     const urlMatch = content.match(/https?:\/\/\S+\.(png|jpg|jpeg|webp)/i);
     if (urlMatch) {
-      const imgResp = await fetch(urlMatch[0]);
-      const buf = await imgResp.arrayBuffer();
-      return { base64: btoa(String.fromCharCode(...new Uint8Array(buf))) };
+      return { base64: await extractBase64(urlMatch[0]) };
     }
   }
 
