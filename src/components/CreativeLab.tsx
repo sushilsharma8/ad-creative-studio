@@ -81,6 +81,10 @@ export function CreativeLab({ projectId }: CreativeLabProps) {
       .filter((a) => !deselectedSeeds.has(a.id) && a.image_url)
       .map((a) => a.image_url!);
 
+    const inspirationUrls = inspirationAssets
+      .filter((a) => a.image_url)
+      .map((a) => a.image_url);
+
     try {
       await generateAds(
         {
