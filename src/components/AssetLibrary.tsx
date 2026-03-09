@@ -124,7 +124,7 @@ export function AssetLibrary({ projectId }: AssetLibraryProps) {
                   </div>
 
                   {asset.caption && (
-                    <p className="px-3 pb-2 text-xs line-clamp-2 leading-relaxed">{asset.caption}</p>
+                    <p className="px-3 pb-2 text-xs line-clamp-4 leading-relaxed">{asset.caption}</p>
                   )}
 
                   {/* Image */}
