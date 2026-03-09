@@ -44,6 +44,7 @@ interface CreativeLabProps {
 
 export function CreativeLab({ projectId }: CreativeLabProps) {
   const { winners } = useAssets(projectId);
+  const { inspirations } = useInspirationAssets(projectId);
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState("");
   const [knowledgeBase, setKnowledgeBase] = useState("");
