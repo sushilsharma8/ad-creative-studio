@@ -752,7 +752,9 @@ serve(async (req) => {
           const imageResults = await Promise.allSettled(
             conceptList.map(async (concept: any, idx: number) => {
               const fullPrompt = TEXT_SAFETY_RULES + concept.image_prompt;
-              const seedUrl = seed_image_urls[idx % seed_image_urls.length] || undefined;
+              // Use winner seeds first, fall back to inspiration images as visual references
+              const allRefs = seed_image_urls.length > 0 ? seed_image_urls : inspiration_image_urls;
+              const seedUrl = allRefs.length > 0 ? allRefs[idx % allRefs.length] : undefined;
 
               let result = await generateImage(resolvedImageModel, fullPrompt, seedUrl);
 
